@@ -1,121 +1,129 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🦟 Sistema Predictivo de Dengue</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
-  <header>
-    <h1>🧠 Sistema Predictivo de Dengue</h1>
-  </header>
 
-  <main>
-    <div id="geminiStatus">
-      <div class="led disconnected" id="geminiLed"></div>
-      <span>Gemini: Desconectado</span>
-    </div>
+<nav>
+  <ul>
+    <li><a href="#cargar">📄 Cargar Dataset</a></li>
+    <li><a href="#estadisticas">📊 Estadísticas</a></li>
+    <li><a href="#prediccion">🧠 Predicción</a></li>
+    <li><a href="#comparativa">📈 Modelos</a></li>
+    <li><a href="#chatbot">🤖 Chatbot</a></li>
+  </ul>
+  <div id="geminiStatus">
+    <div class="led connected" id="geminiLed"></div>
+    <span>Gemini: Conectado</span>
+  </div>
+</nav>
 
-    <div id="geminiRecommendations"></div>
+<header>
+  <h1>🦟 Sistema Predictivo de Dengue</h1>
+</header>
 
-    <section class="form-section">
-      <h2>📄 Cargar Dataset</h2>
-      <input type="file" id="excelFile" accept=".xlsx, .xls" />
-      <p id="loadStatus">Esperando archivo...</p>
-      <div id="dataPreview" class="data-preview"></div>
-    </section>
+<main>
 
-    <section class="form-section">
-      <h2>📊 Estadísticas del Dataset</h2>
-      <canvas id="ageChart" width="200" height="100"></canvas>
-      <canvas id="sexChart" width="200" height="100"></canvas>
-    </section>
+<section id="cargar" class="form-section">
+  <h2>📄 Cargar Dataset</h2>
+  <input type="file" id="excelFile" accept=".xlsx, .xls">
+  <p id="loadStatus">Esperando archivo...</p>
+  <div id="dataPreview" class="data-preview"></div>
+</section>
 
-    <section class="form-section">
-      <h2>🧠 Predicción Manual</h2>
-      <div class="form-group">
-        <label for="age">Edad:</label>
-        <input type="number" id="age" min="0" max="120">
-      </div>
+<section id="estadisticas" class="form-section">
+  <h2>📊 Estadísticas del Dataset</h2>
+  <div class="chart-container">
+    <canvas id="ageChart" width="300" height="300"></canvas>
+    <canvas id="sexChart" width="300" height="300"></canvas>
+  </div>
+</section>
 
-      <div class="form-group">
-        <label for="sex">Sexo:</label>
-        <select id="sex">
-          <option value="male">Masculino</option>
-          <option value="female">Femenino</option>
-          <option value="child">Niño/Niña</option>
-        </select>
-      </div>
+<section id="prediccion" class="form-section">
+  <h2>🧠 Predicción Manual</h2>
+  <div class="form-group">
+    <label>Edad:</label>
+    <input type="number" id="age" min="0" max="120">
+  </div>
+  <div class="form-group">
+    <label>Sexo:</label>
+    <select id="sex">
+      <option value="male">Masculino</option>
+      <option value="female">Femenino</option>
+      <option value="child">Niño/Niña</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Hemoglobina:</label>
+    <input type="number" id="haemoglobin" step="0.1">
+  </div>
+  <div class="form-group">
+    <label>WBC:</label>
+    <input type="number" id="wbc">
+  </div>
+  <div class="form-group">
+    <label>Plaquetas:</label>
+    <input type="number" id="platelets">
+  </div>
+  <div class="form-group">
+    <label>PDW:</label>
+    <input type="number" id="pdw" step="0.1">
+  </div>
+  <div class="form-group">
+    <label>RBC:</label>
+    <select id="rbc">
+      <option value="0">Normal</option>
+      <option value="1">Anormal</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Diff Count:</label>
+    <select id="diffCount">
+      <option value="0">Normal</option>
+      <option value="1">Anormal</option>
+    </select>
+  </div>
 
-      <div class="form-group">
-        <label for="haemoglobin">Hemoglobina (g/dL):</label>
-        <input type="number" step="0.1" id="haemoglobin" min="5" max="20">
-      </div>
+  <div class="button-group">
+    <button id="examplePositiveBtn" class="secondary-btn">Ejemplo Positivo</button>
+    <button id="exampleNegativeBtn" class="secondary-btn">Ejemplo Negativo</button>
+    <button id="clearBtn" class="secondary-btn">Limpiar</button>
+  </div>
 
-      <div class="form-group">
-        <label for="wbc">Glóbulos Blancos (células/μL):</label>
-        <input type="number" id="wbc" min="1000" max="50000">
-      </div>
+  <button id="predictBtn">🔍 Predecir</button>
+  <div id="result" class="prediction-box"></div>
+</section>
 
-      <div class="form-group">
-        <label for="platelets">Plaquetas (células/μL):</label>
-        <input type="number" id="platelets" min="10000" max="500000">
-      </div>
+<section id="comparativa" class="form-section">
+  <h2>📈 Comparativa de Modelos</h2>
+  <canvas id="modelsComparisonChart" width="300" height="300"></canvas>
+  <button id="downloadReport">📄 Descargar Reporte PDF</button>
+</section>
 
-      <div class="form-group">
-        <label for="pdw">PDW:</label>
-        <input type="number" step="0.1" id="pdw" min="5" max="30">
-      </div>
+<section id="chatbot" class="form-section">
+  <h2>🤖 Chatbot Gemini</h2>
+  <div id="geminiRecommendations"></div>
+  <div id="chatContainer">
+    <div id="chatMessages"></div>
+    <input type="text" id="chatInput" placeholder="Haz una pregunta sobre dengue...">
+    <button id="sendBtn">Enviar</button>
+  </div>
+</section>
 
-      <div class="form-group">
-        <label for="rbc">RBC Panel:</label>
-        <select id="rbc">
-          <option value="0">Normal</option>
-          <option value="1">Anormal</option>
-        </select>
-      </div>
+</main>
 
-      <div class="form-group">
-        <label for="diffCount">Differential Count:</label>
-        <select id="diffCount">
-          <option value="0">Normal</option>
-          <option value="1">Anormal</option>
-        </select>
-      </div>
+<footer>
+  <p>Desarrollado por Jose Angel Montiel & Luis Daza Mosquera · Ingeniería de Sistemas 2025</p>
+</footer>
 
-      <div class="button-group">
-        <button id="examplePositiveBtn" class="secondary-btn">Ejemplo Positivo</button>
-        <button id="exampleNegativeBtn" class="secondary-btn">Ejemplo Negativo</button>
-        <button id="clearBtn" class="secondary-btn">Limpiar Campos</button>
-      </div>
-
-      <button id="predictBtn">🔍 Predecir con Modelos</button>
-      <div id="result" class="prediction-box"></div>
-    </section>
-
-    <section class="form-section">
-      <button id="downloadReport" class="secondary-btn" disabled>📄 Descargar Reporte PDF</button>
-    </section>
-
-    <section class="form-section">
-      <h2>🤖 Chatbot Gemini</h2>
-      <div id="chatContainer">
-        <div id="chatMessages"></div>
-        <input type="text" id="chatInput" placeholder="Escribe tu pregunta..." />
-        <button id="sendBtn">Enviar</button>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <p>Desarrollado por Jose Angel Montiel y Luis Daza Mosquera - Estudiantes de Ingeniería de Sistemas · 2025</p>
-  </footer>
-
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
