@@ -217,7 +217,7 @@ canvas {
   border: 1px solid #ccc;
 }
 
-#sendBtn {
+#sendBtn, #clearChatBtn {
   margin-top: 0.5em;
 }
 
