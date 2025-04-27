@@ -21,10 +21,12 @@ function setupEventListeners() {
   document.getElementById('predictBtn').addEventListener('click', predict);
   document.getElementById('downloadReport').addEventListener('click', generatePDF);
   document.getElementById('sendBtn').addEventListener('click', sendChatMessage);
+  document.getElementById('clearChatBtn').addEventListener('click', clearChat);
   document.getElementById('examplePositiveBtn').addEventListener('click', fillExamplePositive);
   document.getElementById('exampleNegativeBtn').addEventListener('click', fillExampleNegative);
   document.getElementById('clearBtn').addEventListener('click', clearForm);
 }
+
 function handleFileUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -91,6 +93,7 @@ function showDataPreview(data) {
   html += `</tbody></table>`;
   preview.innerHTML = html;
 }
+/* =================== Predicción Manual =================== */
 function predict() {
   const sample = {
     age: +document.getElementById('age').value,
@@ -121,28 +124,30 @@ function decisionTree(sample) {
   return score >= 2 ? 1 : 0;
 }
 
+/* =================== Ejemplos Automáticos =================== */
 function fillExamplePositive() {
-  document.getElementById('age').value = 35;
+  document.getElementById('age').value = 32;
   document.getElementById('sex').value = 'male';
-  document.getElementById('haemoglobin').value = 11.2;
-  document.getElementById('wbc').value = 3200;
-  document.getElementById('platelets').value = 85000;
-  document.getElementById('pdw').value = 17.5;
-  document.getElementById('rbc').value = 1;
-  document.getElementById('diffCount').value = 1;
+  document.getElementById('haemoglobin').value = 11.5;
+  document.getElementById('wbc').value = 3400;
+  document.getElementById('platelets').value = 75000;
+  document.getElementById('pdw').value = 17.2;
+  document.getElementById('rbc').value = '1';
+  document.getElementById('diffCount').value = '1';
 }
 
 function fillExampleNegative() {
   document.getElementById('age').value = 25;
   document.getElementById('sex').value = 'female';
-  document.getElementById('haemoglobin').value = 14.5;
-  document.getElementById('wbc').value = 6000;
-  document.getElementById('platelets').value = 250000;
-  document.getElementById('pdw').value = 12.0;
-  document.getElementById('rbc').value = 0;
-  document.getElementById('diffCount').value = 0;
+  document.getElementById('haemoglobin').value = 13.8;
+  document.getElementById('wbc').value = 5600;
+  document.getElementById('platelets').value = 220000;
+  document.getElementById('pdw').value = 11.5;
+  document.getElementById('rbc').value = '0';
+  document.getElementById('diffCount').value = '0';
 }
 
+/* =================== Limpiar Formulario =================== */
 function clearForm() {
   document.getElementById('age').value = '';
   document.getElementById('sex').value = 'male';
@@ -150,10 +155,90 @@ function clearForm() {
   document.getElementById('wbc').value = '';
   document.getElementById('platelets').value = '';
   document.getElementById('pdw').value = '';
-  document.getElementById('rbc').value = 0;
-  document.getElementById('diffCount').value = 0;
+  document.getElementById('rbc').value = '0';
+  document.getElementById('diffCount').value = '0';
   document.getElementById('result').innerHTML = '';
 }
+/* =================== Chatbot Inteligente =================== */
+
+async function sendChatMessage() {
+  const input = document.getElementById('chatInput').value.trim();
+  if (!input) return;
+
+  const chat = document.getElementById('chatMessages');
+  chat.innerHTML += `<div class="user-message">Tú: ${input}</div>`;
+
+  setTimeout(async () => {
+    const response = await getGeminiResponse(input);
+    chat.innerHTML += `<div class="gemini-message">Gemini: ${response}</div>`;
+    chat.scrollTop = chat.scrollHeight;
+  }, 600);
+
+  document.getElementById('chatInput').value = '';
+}
+async function getGeminiResponse(input) {
+  const API_KEY = "AIzaSyCwgpLuzd-JL-qbCicV8aaGqAgTfDFEUP4"; // Tu API Key
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+  const prompt = `
+Responde de manera clara, breve y sin formato markdown (no uses asteriscos, guiones, listas). 
+Escribe todo en texto normal y fluido, de forma profesional.
+Pregunta del usuario: ${input}
+`;
+
+  const payload = {
+    contents: [{
+      parts: [{ text: prompt }]
+    }]
+  };
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en la respuesta de Gemini Flash: ${response.status}`);
+    }
+
+    const data = await response.json();
+    let answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo obtener una respuesta precisa.";
+
+    // Limpieza adicional de asteriscos (por si acaso)
+    answer = answer.replace(/\*/g, '').trim();
+
+    return answer;
+  } catch (error) {
+    console.error("Error al conectar con Gemini Flash API:", error);
+    return "Hubo un problema al consultar Gemini. Inténtalo nuevamente más tarde.";
+  }
+}
+
+
+async function searchInternet(query) {
+  try {
+    const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`);
+    const data = await response.json();
+    if (data.AbstractText) {
+      return data.AbstractText;
+    } else {
+      return "No encontré una respuesta directa en Internet. ¿Puedes reformular tu pregunta?";
+    }
+  } catch (error) {
+    return "Error al consultar Internet. Intenta de nuevo más tarde.";
+  }
+}
+
+/* =================== Limpiar Chat =================== */
+
+function clearChat() {
+  document.getElementById('chatMessages').innerHTML = '';
+}
+/* =================== Estadísticas en Gráficas =================== */
 function renderStatistics(data) {
   const ctxAge = document.getElementById('ageChart').getContext('2d');
   const ctxSex = document.getElementById('sexChart').getContext('2d');
@@ -175,7 +260,7 @@ function renderStatistics(data) {
       datasets: [{
         label: 'Número de Pacientes',
         data: ageGroups,
-        backgroundColor: '#4CAF50'
+        backgroundColor: ['#42a5f5', '#66bb6a', '#ffee58', '#ffa726', '#ef5350', '#ab47bc']
       }]
     },
     options: {
@@ -207,6 +292,7 @@ function renderStatistics(data) {
   });
 }
 
+/* =================== Comparativa de Modelos =================== */
 function renderModelsComparisonChart() {
   const ctx = document.getElementById('modelsComparisonChart').getContext('2d');
   new Chart(ctx, {
@@ -225,69 +311,7 @@ function renderModelsComparisonChart() {
     }
   });
 }
-function sendChatMessage() {
-  const input = document.getElementById('chatInput').value.trim();
-  if (!input) return;
-
-  const chat = document.getElementById('chatMessages');
-  chat.innerHTML += `<div class="user-message">Tú: ${input}</div>`;
-
-  setTimeout(async () => {
-    const response = await getGeminiResponse(input);
-    chat.innerHTML += `<div class="gemini-message">Gemini: ${response}</div>`;
-    chat.scrollTop = chat.scrollHeight;
-  }, 600);
-
-  document.getElementById('chatInput').value = '';
-}
-
-async function getGeminiResponse(input) {
-  const lower = input.toLowerCase();
-
-  if (lower.includes('qué es') || lower.includes('que es')) 
-    return "El dengue es una infección viral transmitida por el mosquito Aedes aegypti. Produce fiebre alta, sarpullido, dolor muscular y puede ser grave en algunos casos.";
-
-  if (lower.includes('síntomas') || lower.includes('sintomas')) 
-    return "Los síntomas del dengue incluyen fiebre alta repentina, dolor de cabeza severo, dolor ocular, dolor articular y muscular, náuseas, vómitos y sarpullido.";
-
-  if (lower.includes('prevención') || lower.includes('prevenir')) 
-    return "Para prevenir el dengue es esencial eliminar criaderos de mosquitos (agua estancada), usar repelente y mosquiteros.";
-
-  if (lower.includes('tratamiento') || lower.includes('cura')) 
-    return "Actualmente no existe un tratamiento antiviral específico para dengue. Se recomienda hidratación, control de fiebre y monitoreo médico.";
-
-  if (lower.includes('transmisión') || lower.includes('mosquito')) 
-    return "El dengue se transmite por la picadura del mosquito Aedes aegypti infectado. Este mosquito suele picar durante el día.";
-
-  if (lower.includes('complicaciones') || lower.includes('grave')) 
-    return "Las complicaciones pueden incluir dengue grave, shock por dengue, hemorragias internas y daño a órganos vitales.";
-
-  if (lower.includes('diagnóstico') || lower.includes('pruebas')) 
-    return "El diagnóstico de dengue se realiza mediante pruebas serológicas como NS1, PCR o anticuerpos IgM/IgG.";
-
-  if (lower.includes('muertes') || lower.includes('mortalidad')) 
-    return "Con tratamiento médico oportuno, la mortalidad por dengue es muy baja (<1%). Sin atención adecuada puede ser mortal.";
-
-  if (lower.includes('dataset') || lower.includes('pacientes') || lower.includes('datos')) 
-    return `Actualmente tienes cargados ${dataset.length} pacientes en el sistema para análisis.`;
-
-  // Si no encontró respuesta local ➔ Consultar en Internet
-  return await searchInternet(input);
-}
-
-async function searchInternet(query) {
-  try {
-    const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`);
-    const data = await response.json();
-    if (data.AbstractText) {
-      return data.AbstractText;
-    } else {
-      return "No encontré una respuesta directa en Internet. ¿Puedes reformular tu pregunta?";
-    }
-  } catch (error) {
-    return "Hubo un error al consultar en Internet. Intenta reformular tu pregunta.";
-  }
-}
+/* =================== Generar PDF =================== */
 function generatePDF() {
   if (dataset.length === 0) {
     alert('No hay datos cargados.');
@@ -339,7 +363,7 @@ function generatePDF() {
   doc.setFontSize(12);
   doc.text("Distribución de pacientes por sexo:", 10, startY);
 
-  // Tabla de pacientes resumida por sexo
+  // Tabla de pacientes por sexo
   doc.autoTable({
     startY: startY + 5,
     head: [['Sexo', 'Número de Pacientes']],
